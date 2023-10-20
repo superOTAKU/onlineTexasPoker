@@ -12,7 +12,8 @@ import (
 )
 
 type webSocketProtocol struct {
-	ginCtx *gin.Context
+	gin    *gin.Engine
+	server Server
 }
 
 type webSocketConn struct {
@@ -26,20 +27,20 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p *webSocketProtocol) getServer() Server {
-	return nil
+	return p.server
 }
 
 func (c *webSocketConn) GetConn() cmd.ClientConn {
-	return nil
+	return c
 }
 
 func (c *webSocketConn) WriteCommand(command cmd.Command) error {
-
-	return nil
+	return c.conn.WriteMessage(websocket.BinaryMessage, cmd.EncodeCommand(command))
 }
 
 func (p *webSocketProtocol) ListenAndServe() error {
 	r := gin.Default()
+	p.gin = r
 	r.GET("/", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
@@ -49,11 +50,12 @@ func (p *webSocketProtocol) ListenAndServe() error {
 		log.Logger().Info("received webSocket conn", logFields.RemoteAddr(conn))
 		connWrapper := &webSocketConn{
 			conn: conn,
+			p:    p,
 		}
 		go connWrapper.serve()
 	})
-	log.Logger().Info("starting ws server", zap.String("Host",
-		p.getServer().GetListenHost()), zap.Int("Port", p.getServer().GetListenPort()))
+	log.Logger().Info("starting ws server", zap.String("host",
+		p.getServer().GetListenHost()), zap.Int("port", p.getServer().GetListenPort()))
 	return r.Run(fmt.Sprintf("%s:%d", p.getServer().GetListenHost(), p.getServer().GetListenPort()))
 }
 
@@ -92,8 +94,15 @@ func (c *webSocketConn) serve() {
 func (c *webSocketConn) handleCommand(handler cmd.CommandHandler, command cmd.Command) {
 	defer func() {
 		if r := recover(); r != nil {
-			
+			log.Logger().Error("handle command panic",
+				zap.Any("remoteAddr", c.conn.RemoteAddr()), zap.Any("commandCode", command.GetCommandCode()))
 		}
 	}()
 	handler.Handle(c, command)
+}
+
+func newWebSocketProtocol(server Server) protocol {
+	return &webSocketProtocol{
+		server: server,
+	}
 }

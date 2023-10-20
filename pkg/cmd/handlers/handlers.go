@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/superOTAKU/onlineTexasPoker/pkg/cmd"
+	"github.com/superOTAKU/onlineTexasPoker/pkg/cmd/codes"
 )
 
 var (
@@ -13,6 +14,7 @@ func initCommandHandlers() {
 	if initFlag {
 		return
 	}
+	commandHandlers[codes.OpenRoom] = openRoomHandlerInstance
 	initFlag = true
 }
 

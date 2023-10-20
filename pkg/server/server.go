@@ -2,6 +2,8 @@ package server
 
 import (
 	"github.com/superOTAKU/onlineTexasPoker/pkg/cmd"
+	"github.com/superOTAKU/onlineTexasPoker/pkg/log"
+	"go.uber.org/zap"
 )
 
 type ProtocolType uint8
@@ -33,6 +35,7 @@ type server struct {
 }
 
 func (s *server) ListenAndServe() error {
+	log.Logger().Info("start listen", zap.String("host", s.host), zap.Int("port", s.port), zap.Any("protocolType", s.protocolType))
 	if err := s.protocol.ListenAndServe(); err != nil {
 		return err
 	}
@@ -72,6 +75,8 @@ func NewServer(options *ServerOptions) Server {
 	switch options.ProtocolType {
 	case Tcp:
 		s.protocol = newTcpProtocol(s)
+	case WebSocket:
+		s.protocol = newWebSocketProtocol(s)
 	}
 	return s
 }

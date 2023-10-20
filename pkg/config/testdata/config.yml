@@ -3,4 +3,5 @@ server:
   port: 8080
   protocolType: Tcp
 log:
-  path: ./server.log
+  filePath: ./server.log
+  console: true
